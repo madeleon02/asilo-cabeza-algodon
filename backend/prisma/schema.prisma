@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EstadoInterno {
+  activo
+  hospitalizado
+  egresado
+  fallecido
+}
+
+enum EstadoSolicitud {
+  pendiente
+  asignada
+  en_proceso
+  completada
+  cancelada
+}
+
+enum EstadoExamen {
+  pendiente
+  realizado
+  cancelado
+}
+
+enum EstadoDespacho {
+  pendiente
+  despachado
+  cancelado
+}
+
+enum EstadoCobro {
+  pendiente
+  parcial
+  pagado
+}
+
+enum TipoDonante {
+  empresa_internacional
+  empresa_nacional
+  gobierno
+  particular
+}
+
+model Rol {
+  id_rol      Int      @id @default(autoincrement())
+  nombre_rol  String   @unique
+  descripcion String?
+  usuarios    Usuario[]
+}
+
+model Usuario {
+  id_usuario      Int       @id @default(autoincrement())
+  id_rol          Int
+  username        String    @unique
+  password_hash   String
+  nombre_completo String
+  correo          String    @unique
+  activo          Boolean   @default(true)
+  ultimo_acceso   DateTime?
+  rol             Rol       @relation(fields: [id_rol], references: [id_rol])
+  medico          Medico?
+}
+
+model Medico {
+  id_medico            Int       @id @default(autoincrement())
+  id_usuario           Int       @unique
+  nombre_completo      String
+  especialidad         String
+  num_colegiado        String    @unique
+  pertenece_fundacion  Boolean   @default(false)
+  activo               Boolean   @default(true)
+  usuario              Usuario   @relation(fields: [id_usuario], references: [id_usuario])
+  solicitudes_general  SolicitudReferencia[] @relation("MedicoGeneral")
+  solicitudes_esp      SolicitudReferencia[] @relation("MedicoEspecialista")
+  visitas              VisitaMedica[]
+}
+
+model Familiar {
+  id_familiar        Int       @id @default(autoincrement())
+  nombres            String
+  apellidos          String
+  parentesco         String
+  telefono           String
+  correo_electronico String    @unique
+  direccion          String?
+  saldo_pendiente    Decimal   @default(0) @db.Decimal(10,2)
+  internos           Interno[]
+  cobros             CobroFamiliar[]
+}
+
+model Interno {
+  id_interno      Int            @id @default(autoincrement())
+  id_familiar     Int
+  nombres         String
+  apellidos       String
+  dpi             String         @unique
+  fecha_nacimiento DateTime      @db.Date
+  fecha_ingreso   DateTime       @db.Date
+  estado          EstadoInterno  @default(activo)
+  motivo_ingreso  String?
+  fecha_registro  DateTime       @default(now())
+  familiar        Familiar       @relation(fields: [id_familiar], references: [id_familiar])
+  psicopatologias PsicopatologiaInterno[]
+  medicamentos    MedicamentoCajon[]
+  solicitudes     SolicitudReferencia[]
+  visitas         VisitaMedica[]
+  cobros          CobroFamiliar[]
+}
+
+model PsicopatologiaInterno {
+  id_psicopatologia Int      @id @default(autoincrement())
+  id_interno        Int
+  nombre_condicion  String
+  descripcion       String?
+  fecha_diagnostico DateTime? @db.Date
+  activo            Boolean  @default(true)
+  interno           Interno  @relation(fields: [id_interno], references: [id_interno])
+}
+
+model MedicamentoCajon {
+  id_med_cajon       Int     @id @default(autoincrement())
+  id_interno         Int
+  nombre_medicamento String
+  dosis              String
+  tiempo_aplicacion  String?
+  activo             Boolean @default(true)
+  interno            Interno @relation(fields: [id_interno], references: [id_interno])
+}
+
+model SolicitudReferencia {
+  id_solicitud           Int             @id @default(autoincrement())
+  id_interno             Int
+  id_medico_general      Int
+  id_medico_especialista Int?
+  id_enfermero           Int?
+  especialidad_requerida String
+  motivo_referencia      String
+  estado                 EstadoSolicitud @default(pendiente)
+  fecha_creacion         DateTime        @default(now())
+  fecha_cita             DateTime?
+  correo_enviado         Boolean         @default(false)
+  interno                Interno         @relation(fields: [id_interno], references: [id_interno])
+  medico_general         Medico          @relation("MedicoGeneral", fields: [id_medico_general], references: [id_medico])
+  medico_especialista    Medico?         @relation("MedicoEspecialista", fields: [id_medico_especialista], references: [id_medico])
+  visita                 VisitaMedica?
+}
+
+model VisitaMedica {
+  id_visita              Int          @id @default(autoincrement())
+  id_solicitud           Int          @unique
+  id_interno             Int
+  id_medico_especialista Int
+  fecha_visita           DateTime     @default(now())
+  motivo_visita          String
+  diagnostico            String
+  observaciones          String?
+  costo_consulta         Decimal      @default(0) @db.Decimal(10,2)
+  estado                 String       @default("en_proceso")
+  solicitud              SolicitudReferencia @relation(fields: [id_solicitud], references: [id_solicitud])
+  interno                Interno      @relation(fields: [id_interno], references: [id_interno])
+  medico                 Medico       @relation(fields: [id_medico_especialista], references: [id_medico])
+  examenes               ExamenSolicitado[]
+  prescripciones         Prescripcion[]
+}
+
+model ExamenSolicitado {
+  id_examen    Int          @id @default(autoincrement())
+  id_visita    Int
+  nombre_examen String
+  descripcion  String?
+  costo_examen Decimal      @default(0) @db.Decimal(10,2)
+  estado       EstadoExamen @default(pendiente)
+  visita       VisitaMedica @relation(fields: [id_visita], references: [id_visita])
+  resultado    ResultadoLaboratorio?
+}
+
+model ResultadoLaboratorio {
+  id_resultado       Int      @id @default(autoincrement())
+  id_examen          Int      @unique
+  id_laboratorista   Int
+  resultado_texto    String
+  valores_referencia String?
+  fecha_resultado    DateTime @default(now())
+  observaciones      String?
+  examen             ExamenSolicitado @relation(fields: [id_examen], references: [id_examen])
+}
+
+model Prescripcion {
+  id_prescripcion    Int            @id @default(autoincrement())
+  id_visita          Int
+  nombre_medicamento String
+  cantidad           String
+  dosis              String
+  tiempo_aplicacion  String
+  costo_medicamento  Decimal        @default(0) @db.Decimal(10,2)
+  estado_despacho    EstadoDespacho @default(pendiente)
+  visita             VisitaMedica   @relation(fields: [id_visita], references: [id_visita])
+  despacho           DespachoFarmacia?
+}
+
+model DespachoFarmacia {
+  id_despacho     Int          @id @default(autoincrement())
+  id_prescripcion Int          @unique
+  id_farmaceutico Int
+  fecha_despacho  DateTime     @default(now())
+  observaciones   String?
+  prescripcion    Prescripcion @relation(fields: [id_prescripcion], references: [id_prescripcion])
+}
+
+model CobroFamiliar {
+  id_cobro             Int         @id @default(autoincrement())
+  id_familiar          Int
+  id_interno           Int
+  descripcion          String
+  monto_total          Decimal     @db.Decimal(10,2)
+  monto_pagado         Decimal     @default(0) @db.Decimal(10,2)
+  saldo_pendiente      Decimal     @db.Decimal(10,2)
+  fecha_cobro          DateTime    @db.Date @default(now())
+  estado               EstadoCobro @default(pendiente)
+  fecha_pago_completo  DateTime?   @db.Date
+  familiar             Familiar    @relation(fields: [id_familiar], references: [id_familiar])
+  interno              Interno     @relation(fields: [id_interno], references: [id_interno])
+}
+
+model Donacion {
+  id_donacion          Int         @id @default(autoincrement())
+  id_usuario_registro  Int
+  tipo_donante         TipoDonante
+  nombre_donante       String
+  monto                Decimal     @db.Decimal(10,2)
+  fecha_donacion       DateTime    @db.Date @default(now())
+  descripcion          String?
+}
+
+model GastoOperativo {
+  id_gasto             Int      @id @default(autoincrement())
+  id_usuario_registro  Int
+  categoria            String
+  descripcion          String
+  monto                Decimal  @db.Decimal(10,2)
+  fecha_gasto          DateTime @db.Date @default(now())
+  proveedor            String?
+}
+
+model PagoFundacion {
+  id_pago_fundacion    Int      @id @default(autoincrement())
+  id_usuario_registro  Int
+  monto                Decimal  @db.Decimal(10,2)
+  fecha_pago           DateTime @db.Date @default(now())
+  descripcion          String?
+}
