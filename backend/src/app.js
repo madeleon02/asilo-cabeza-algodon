@@ -24,6 +24,8 @@ const loginLimiter = rateLimit({
 // Rutas
 app.use('/api/auth', loginLimiter, require('./routes/auth.routes'));
 app.use('/api/internos', require('./routes/internos.routes'));
+app.use('/api/solicitudes', require('./routes/solicitudes.routes'));
+app.use('/api/visitas', require('./routes/visitas.routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

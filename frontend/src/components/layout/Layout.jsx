@@ -11,10 +11,11 @@ export default function Layout({ children }) {
     navigate('/login');
   };
 
-  const menuItems = [
-    { path: '/dashboard', icon: '🏠', label: 'Inicio' },
-    { path: '/internos', icon: '👴', label: 'Internos' },
-  ];
+    const menuItems = [
+        { path: '/dashboard', icon: '🏠', label: 'Inicio' },
+        { path: '/internos', icon: '👴', label: 'Internos' },
+        { path: '/solicitudes', icon: '🩺', label: 'Solicitudes' },
+    ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
