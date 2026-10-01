@@ -21,3 +21,5 @@ Thumbs.db
 .cursor/
 .devin/
 prisma.config.ts
+.vs/
+backend/*.sql
