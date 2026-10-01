@@ -1,0 +1,12 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\backend",
+    "\\backend\\src",
+    "\\backend\\src\\controllers",
+    "\\frontend",
+    "\\frontend\\src\\pages\\solicitudes"
+  ],
+  "SelectedNode": "\\backend\\src\\controllers\\solicitudes.controller.js",
+  "PreviewInSolutionExplorer": false
+}

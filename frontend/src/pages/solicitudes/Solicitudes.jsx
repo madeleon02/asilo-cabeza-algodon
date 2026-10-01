@@ -1,85 +1,92 @@
-import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import { useState, useEffect } from "react";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 const ESTADOS_COLOR = {
-  pendiente:  'bg-blue-100 text-blue-800',
-  asignada:   'bg-green-100 text-green-800',
-  en_proceso: 'bg-yellow-100 text-yellow-800',
-  completada: 'bg-gray-100 text-gray-800',
-  cancelada:  'bg-red-100 text-red-800',
+  pendiente:  "bg-blue-100 text-blue-800",
+  asignada:   "bg-green-100 text-green-800",
+  en_proceso: "bg-yellow-100 text-yellow-800",
+  completada: "bg-gray-100 text-gray-800",
+  cancelada:  "bg-red-100 text-red-800",
 };
 
 export default function Solicitudes() {
+  const { usuario } = useAuth();
   const [solicitudes, setSolicitudes] = useState([]);
   const [internos, setInternos]       = useState([]);
+  const [medicos, setMedicos]         = useState([]);
   const [cargando, setCargando]       = useState(true);
   const [mostrarForm, setMostrarForm] = useState(false);
-  const [toast, setToast]             = useState('');
-  const [filtro, setFiltro]           = useState('todos');
-  const [form, setForm] = useState({
-    id_interno: '', especialidad_requerida: '', motivo_referencia: ''
-  });
+  const [mostrarAsignar, setMostrarAsignar] = useState(false);
+  const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
+  const [toast, setToast]   = useState("");
+  const [filtro, setFiltro] = useState("todos");
+  const [form, setForm] = useState({ id_interno: "", especialidad_requerida: "", motivo_referencia: "" });
+  const [formAsignar, setFormAsignar] = useState({ id_medico_especialista: "", fecha_cita: "" });
 
-  const ESPECIALIDADES = [
-    'Cardiologia','Neurologia','Ortopedia','Geriatria',
-    'Psiquiatria','Oftalmologia','Dermatologia','Medicina Interna'
-  ];
+  const ESPECIALIDADES = ["Cardiologia","Neurologia","Ortopedia","Geriatria","Psiquiatria","Oftalmologia","Dermatologia","Medicina Interna"];
 
   useEffect(() => { cargar(); }, []);
 
   async function cargar() {
     try {
       setCargando(true);
-      const [s, i] = await Promise.all([
-        api.get('/solicitudes'),
-        api.get('/internos'),
-      ]);
+      const [s, i] = await Promise.all([api.get("/solicitudes"), api.get("/internos")]);
       setSolicitudes(s.data);
-      setInternos(i.data.filter(x => x.estado === 'activo'));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setCargando(false);
-    }
+      setInternos(i.data.filter(x => x.estado === "activo"));
+    } catch (e) { console.error(e); }
+    finally { setCargando(false); }
   }
 
   async function guardar(e) {
     e.preventDefault();
     try {
-      await api.post('/solicitudes', form);
+      await api.post("/solicitudes", form);
       setMostrarForm(false);
-      setForm({ id_interno: '', especialidad_requerida: '', motivo_referencia: '' });
-      mostrarToast('Solicitud creada correctamente');
+      setForm({ id_interno: "", especialidad_requerida: "", motivo_referencia: "" });
+      mostrarToast("Solicitud creada correctamente");
       cargar();
-    } catch (err) {
-      mostrarToast(err.response?.data?.error || 'Error al crear solicitud', true);
-    }
+    } catch (err) { mostrarToast(err.response?.data?.error || "Error al crear solicitud", true); }
   }
 
   async function cancelar(id) {
-    if (!confirm('Cancelar esta solicitud?')) return;
+    if (!confirm("Cancelar esta solicitud?")) return;
     try {
-      await api.put('/solicitudes/' + id + '/cancelar');
-      mostrarToast('Solicitud cancelada');
+      await api.put("/solicitudes/" + id + "/cancelar");
+      mostrarToast("Solicitud cancelada");
       cargar();
-    } catch (err) {
-      mostrarToast(err.response?.data?.error || 'Error al cancelar', true);
-    }
+    } catch (err) { mostrarToast(err.response?.data?.error || "Error al cancelar", true); }
+  }
+
+  async function abrirAsignar(solicitud) {
+    setSolicitudSeleccionada(solicitud);
+    setMedicos([{ id_medico: 2, nombre_completo: "Dra. Ana Leticia Ruiz", especialidad: "Neurologia" }]);
+    setMostrarAsignar(true);
+  }
+
+  async function asignarCita(e) {
+    e.preventDefault();
+    try {
+      await api.put("/solicitudes/" + solicitudSeleccionada.id_solicitud + "/asignar", formAsignar);
+      setMostrarAsignar(false);
+      setSolicitudSeleccionada(null);
+      setFormAsignar({ id_medico_especialista: "", fecha_cita: "" });
+      mostrarToast("Cita asignada correctamente");
+      cargar();
+    } catch (err) { mostrarToast(err.response?.data?.error || "Error al asignar cita", true); }
   }
 
   function mostrarToast(msg, error) {
     setToast({ msg, error });
-    setTimeout(() => setToast(''), 3000);
+    setTimeout(() => setToast(""), 3000);
   }
 
-  const filtradas = filtro === 'todos'
-    ? solicitudes
-    : solicitudes.filter(s => s.estado === filtro);
+  const filtradas = filtro === "todos" ? solicitudes : solicitudes.filter(s => s.estado === filtro);
 
   return (
     <div className="p-6">
       {toast && (
-        <div className={'fixed top-4 right-4 z-50 px-4 py-3 rounded shadow-lg text-white font-medium ' + (toast.error ? 'bg-red-600' : 'bg-green-600')}>
+        <div className={"fixed top-4 right-4 z-50 px-4 py-3 rounded shadow-lg text-white font-medium " + (toast.error ? "bg-red-600" : "bg-green-600")}>
           {toast.msg}
         </div>
       )}
@@ -88,16 +95,17 @@ export default function Solicitudes() {
           <h1 className="text-2xl font-bold text-blue-900">Solicitudes de Referencia</h1>
           <p className="text-gray-500 text-sm">{solicitudes.length} solicitud(es) registrada(s)</p>
         </div>
-        <button onClick={() => setMostrarForm(true)}
-          className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 font-medium">
-          + Nueva solicitud
-        </button>
+        {["administrador","medico_general"].includes(usuario?.rol) && (
+          <button onClick={() => setMostrarForm(true)} className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 font-medium">
+            + Nueva solicitud
+          </button>
+        )}
       </div>
       <div className="flex gap-2 mb-4 flex-wrap">
-        {['todos','pendiente','asignada','en_proceso','completada','cancelada'].map(e => (
+        {["todos","pendiente","asignada","en_proceso","completada","cancelada"].map(e => (
           <button key={e} onClick={() => setFiltro(e)}
-            className={'px-3 py-1 rounded-full text-sm font-medium border transition ' + (filtro === e ? 'bg-blue-800 text-white border-blue-800' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400')}>
-            {e.charAt(0).toUpperCase() + e.slice(1).replace('_',' ')}
+            className={"px-3 py-1 rounded-full text-sm font-medium border transition " + (filtro === e ? "bg-blue-800 text-white border-blue-800" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400")}>
+            {e.charAt(0).toUpperCase() + e.slice(1).replace("_"," ")}
           </button>
         ))}
       </div>
@@ -120,23 +128,29 @@ export default function Solicitudes() {
             </thead>
             <tbody>
               {filtradas.map((s, i) => (
-                <tr key={s.id_solicitud} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+                <tr key={s.id_solicitud} className={i % 2 === 0 ? "bg-white" : "bg-blue-50"}>
                   <td className="px-4 py-3 font-medium text-blue-900">{s.interno?.nombres} {s.interno?.apellidos}</td>
                   <td className="px-4 py-3">{s.especialidad_requerida}</td>
-                  <td className="px-4 py-3">{s.medico_general?.nombre_completo || '-'}</td>
-                  <td className="px-4 py-3">{s.fecha_cita ? new Date(s.fecha_cita).toLocaleDateString('es-GT') : '-'}</td>
+                  <td className="px-4 py-3">{s.medico_general?.nombre_completo || "-"}</td>
+                  <td className="px-4 py-3">{s.fecha_cita ? new Date(s.fecha_cita).toLocaleDateString("es-GT") : "-"}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={'px-2 py-1 rounded-full text-xs font-bold ' + (ESTADOS_COLOR[s.estado] || '')}>
-                      {s.estado.replace('_',' ')}
+                    <span className={"px-2 py-1 rounded-full text-xs font-bold " + (ESTADOS_COLOR[s.estado] || "")}>
+                      {s.estado.replace("_"," ")}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {!['completada','cancelada'].includes(s.estado) && (
-                      <button onClick={() => cancelar(s.id_solicitud)}
-                        className="text-red-600 hover:text-red-800 text-xs font-medium">
-                        Cancelar
-                      </button>
-                    )}
+                    <div className="flex gap-2 justify-center">
+                      {s.estado === "pendiente" && ["fundacion","administrador"].includes(usuario?.rol) && (
+                        <button onClick={() => abrirAsignar(s)} className="text-green-600 hover:text-green-800 text-xs font-medium">
+                          Asignar cita
+                        </button>
+                      )}
+                      {!["completada","cancelada"].includes(s.estado) && (
+                        <button onClick={() => cancelar(s.id_solicitud)} className="text-red-600 hover:text-red-800 text-xs font-medium">
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -144,6 +158,7 @@ export default function Solicitudes() {
           </table>
         </div>
       )}
+
       {mostrarForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
@@ -154,42 +169,63 @@ export default function Solicitudes() {
             <form onSubmit={guardar} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Interno *</label>
-                <select required value={form.id_interno}
-                  onChange={e => setForm({...form, id_interno: e.target.value})}
+                <select required value={form.id_interno} onChange={e => setForm({...form, id_interno: e.target.value})}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
                   <option value="">Seleccione un interno</option>
-                  {internos.map(i => (
-                    <option key={i.id_interno} value={i.id_interno}>{i.nombres} {i.apellidos} - {i.dpi}</option>
-                  ))}
+                  {internos.map(i => <option key={i.id_interno} value={i.id_interno}>{i.nombres} {i.apellidos} - {i.dpi}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Especialidad requerida *</label>
-                <select required value={form.especialidad_requerida}
-                  onChange={e => setForm({...form, especialidad_requerida: e.target.value})}
+                <select required value={form.especialidad_requerida} onChange={e => setForm({...form, especialidad_requerida: e.target.value})}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
                   <option value="">Seleccione especialidad</option>
-                  {ESPECIALIDADES.map(esp => (
-                    <option key={esp} value={esp}>{esp}</option>
-                  ))}
+                  {ESPECIALIDADES.map(esp => <option key={esp} value={esp}>{esp}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Motivo de referencia *</label>
-                <textarea required rows={4} value={form.motivo_referencia}
-                  onChange={e => setForm({...form, motivo_referencia: e.target.value})}
+                <textarea required rows={4} value={form.motivo_referencia} onChange={e => setForm({...form, motivo_referencia: e.target.value})}
                   placeholder="Describa el motivo clinico de la referencia..."
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none"/>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setMostrarForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 text-sm">
-                  Cancelar
-                </button>
-                <button type="submit"
-                  className="px-4 py-2 bg-blue-800 text-white rounded hover:bg-blue-900 text-sm font-medium">
-                  Crear solicitud
-                </button>
+                <button type="button" onClick={() => setMostrarForm(false)} className="px-4 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-blue-800 text-white rounded hover:bg-blue-900 text-sm font-medium">Crear solicitud</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {mostrarAsignar && solicitudSeleccionada && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="bg-green-800 text-white px-6 py-4 rounded-t-xl">
+              <h2 className="text-lg font-bold">Asignar Cita Medica</h2>
+              <p className="text-green-200 text-sm">Interno: {solicitudSeleccionada.interno?.nombres} {solicitudSeleccionada.interno?.apellidos}</p>
+            </div>
+            <form onSubmit={asignarCita} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Especialidad solicitada</label>
+                <input disabled value={solicitudSeleccionada.especialidad_requerida} className="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-gray-50 text-gray-500"/>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Medico Especialista *</label>
+                <select required value={formAsignar.id_medico_especialista} onChange={e => setFormAsignar({...formAsignar, id_medico_especialista: e.target.value})}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-green-500">
+                  <option value="">Seleccione un especialista</option>
+                  {medicos.map(m => <option key={m.id_medico} value={m.id_medico}>{m.nombre_completo} - {m.especialidad}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha y hora de la cita *</label>
+                <input required type="datetime-local" value={formAsignar.fecha_cita} onChange={e => setFormAsignar({...formAsignar, fecha_cita: e.target.value})}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-green-500"/>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setMostrarAsignar(false)} className="px-4 py-2 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800 text-sm font-medium">Confirmar asignacion</button>
               </div>
             </form>
           </div>
