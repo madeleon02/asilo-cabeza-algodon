@@ -16,6 +16,7 @@ export default function Layout({ children }) {
         { path: '/internos', icon: '👴', label: 'Internos' },
         { path: '/solicitudes', icon: '🩺', label: 'Solicitudes' },
         { path: '/visitas', icon: '🩺', label: 'Visitas' },
+        { path: '/laboratorio', icon: '🔬', label: 'Laboratorio' },
     ];
 
   return (

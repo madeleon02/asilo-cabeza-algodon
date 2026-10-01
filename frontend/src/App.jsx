@@ -5,6 +5,8 @@ import Layout from './components/layout/Layout';
 import Internos from './pages/internos/Internos';
 import Solicitudes from './pages/solicitudes/Solicitudes';
 import Visitas from './pages/visitas/Visitas';
+import Laboratorio from './pages/laboratorio/Laboratorio';
+
 
 function Dashboard() {
     const { usuario } = useAuth();
@@ -59,6 +61,7 @@ function App() {
                     <Route path="/internos" element={<RutaProtegida><Layout><Internos /></Layout></RutaProtegida>} />
                     <Route path="/solicitudes" element={<RutaProtegida><Layout><Solicitudes /></Layout></RutaProtegida>} />
                     <Route path="/visitas" element={<RutaProtegida><Layout><Visitas /></Layout></RutaProtegida>} />
+                    <Route path="/laboratorio" element={<RutaProtegida><Layout><Laboratorio /></Layout></RutaProtegida>} />
                     <Route path="*" element={<Navigate to="/login" />} />
                 </Routes>
             </BrowserRouter>
