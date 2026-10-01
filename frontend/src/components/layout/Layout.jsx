@@ -15,6 +15,7 @@ export default function Layout({ children }) {
         { path: '/dashboard', icon: '🏠', label: 'Inicio' },
         { path: '/internos', icon: '👴', label: 'Internos' },
         { path: '/solicitudes', icon: '🩺', label: 'Solicitudes' },
+        { path: '/visitas', icon: '🩺', label: 'Visitas' },
     ];
 
   return (
