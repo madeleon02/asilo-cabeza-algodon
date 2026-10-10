@@ -23,3 +23,7 @@ Thumbs.db
 prisma.config.ts
 .vs/
 backend/*.sql
+
+.env
+backend/.env
+frontend/.env
