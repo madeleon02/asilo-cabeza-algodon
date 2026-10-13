@@ -104,7 +104,7 @@ export default function Visitas() {
 
           {solicitudes.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-lg font-semibold text-green-800 mb-3">Solicitudes asignadas — pendientes de atender</h2>
+              <h2 className="text-lg font-semibold text-green-800 mb-3">Solicitudes asignadas â€” pendientes de atender</h2>
               <div className="bg-white rounded-lg shadow overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
@@ -272,7 +272,7 @@ export default function Visitas() {
                           <span className="font-medium">{p.nombre_medicamento}</span>
                           <span className="text-yellow-800 font-medium">Q{parseFloat(p.costo_medicamento).toFixed(2)}</span>
                         </div>
-                        <div className="text-gray-500 text-xs">{p.dosis} — {p.cantidad}</div>
+                        <div className="text-gray-500 text-xs">{p.dosis} â€” {p.cantidad}</div>
                       </li>
                     ))}
                   </ul>

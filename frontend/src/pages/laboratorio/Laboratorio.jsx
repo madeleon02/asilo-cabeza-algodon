@@ -135,7 +135,7 @@ export default function Laboratorio() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
             <div className="bg-blue-900 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-bold">Registrar Resultado</h2>
-              <p className="text-blue-200 text-sm">{examenActivo.nombre_examen} — {examenActivo.visita?.interno?.nombres} {examenActivo.visita?.interno?.apellidos}</p>
+              <p className="text-blue-200 text-sm">{examenActivo.nombre_examen} â€” {examenActivo.visita?.interno?.nombres} {examenActivo.visita?.interno?.apellidos}</p>
             </div>
             <form onSubmit={guardarResultado} className="p-6 space-y-4">
               <div>
