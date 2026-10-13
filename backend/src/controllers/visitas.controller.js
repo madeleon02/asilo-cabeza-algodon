@@ -7,7 +7,7 @@ const listarVisitas = async (req, res) => {
         let where = {};
 
         if (rol === 'medico_especialista') {
-            const medico = await prisma.medico.findUnique({ where: { id_usuario } });
+            const medico = await prisma.medico.findFirst({ where: { id_usuario } });
             if (medico) where.id_medico_especialista = medico.id_medico;
         }
 
@@ -30,7 +30,7 @@ const listarVisitas = async (req, res) => {
     }
 };
 
-// POST /api/visitas � iniciar visita
+// POST /api/visitas - iniciar visita
 const iniciarVisita = async (req, res) => {
     try {
         const { id_solicitud } = req.body;
@@ -47,7 +47,7 @@ const iniciarVisita = async (req, res) => {
             return res.status(400).json({ error: 'La solicitud debe estar en estado asignada' });
         }
 
-        const medico = await prisma.medico.findUnique({ where: { id_usuario } });
+        const medico = await prisma.medico.findFirst({ where: { id_usuario } });
         if (!medico) return res.status(400).json({ error: 'Usuario no tiene perfil de medico' });
 
         const [visita] = await prisma.$transaction([
@@ -144,12 +144,27 @@ const agregarExamen = async (req, res) => {
 
         if (!nombre_examen) return res.status(400).json({ error: 'nombre_examen es obligatorio' });
 
+        // H-06: verificar que la visita existe y está abierta
+        const visita = await prisma.visitaMedica.findUnique({
+            where: { id_visita: parseInt(id) }
+        });
+        if (!visita) return res.status(404).json({ error: 'Visita no encontrada' });
+        if (visita.estado !== 'en_proceso') {
+            return res.status(400).json({ error: 'Solo se pueden agregar examenes a visitas en proceso' });
+        }
+
+        // H-06: rechazar costos negativos
+        const costo = parseFloat(costo_examen) || 0;
+        if (costo < 0) {
+            return res.status(400).json({ error: 'El costo del examen no puede ser negativo' });
+        }
+
         const examen = await prisma.examenSolicitado.create({
             data: {
                 id_visita: parseInt(id),
                 nombre_examen,
                 descripcion: descripcion || '',
-                costo_examen: parseFloat(costo_examen) || 0,
+                costo_examen: costo,
                 estado: 'pendiente'
             }
         });
@@ -171,6 +186,21 @@ const agregarPrescripcion = async (req, res) => {
             return res.status(400).json({ error: 'nombre_medicamento, cantidad y dosis son obligatorios' });
         }
 
+        // H-06: verificar que la visita existe y está abierta
+        const visita = await prisma.visitaMedica.findUnique({
+            where: { id_visita: parseInt(id) }
+        });
+        if (!visita) return res.status(404).json({ error: 'Visita no encontrada' });
+        if (visita.estado !== 'en_proceso') {
+            return res.status(400).json({ error: 'Solo se pueden agregar prescripciones a visitas en proceso' });
+        }
+
+        // H-06: rechazar costos negativos
+        const costo = parseFloat(costo_medicamento) || 0;
+        if (costo < 0) {
+            return res.status(400).json({ error: 'El costo del medicamento no puede ser negativo' });
+        }
+
         const prescripcion = await prisma.prescripcion.create({
             data: {
                 id_visita: parseInt(id),
@@ -178,7 +208,7 @@ const agregarPrescripcion = async (req, res) => {
                 cantidad,
                 dosis,
                 tiempo_aplicacion: tiempo_aplicacion || '',
-                costo_medicamento: parseFloat(costo_medicamento) || 0,
+                costo_medicamento: costo,
                 estado_despacho: 'pendiente'
             }
         });
