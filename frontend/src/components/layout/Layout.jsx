@@ -1,6 +1,53 @@
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
+// H-03: módulos por rol (nombres de rol según BD)
+const MENU_POR_ROL = {
+  administrador: [
+    { path: '/dashboard',   icon: '🏠', label: 'Inicio' },
+    { path: '/internos',    icon: '👴', label: 'Internos' },
+    { path: '/solicitudes', icon: '📋', label: 'Solicitudes' },
+    { path: '/visitas',     icon: '🩺', label: 'Visitas' },
+    { path: '/laboratorio', icon: '🔬', label: 'Laboratorio' },
+    { path: '/farmacia',    icon: '💊', label: 'Farmacia' },
+    { path: '/finanzas',    icon: '💰', label: 'Finanzas' },
+  ],
+  director: [
+    { path: '/dashboard',   icon: '🏠', label: 'Inicio' },
+    { path: '/internos',    icon: '👴', label: 'Internos' },
+    { path: '/solicitudes', icon: '📋', label: 'Solicitudes' },
+    { path: '/visitas',     icon: '🩺', label: 'Visitas' },
+    { path: '/laboratorio', icon: '🔬', label: 'Laboratorio' },
+    { path: '/farmacia',    icon: '💊', label: 'Farmacia' },
+    { path: '/finanzas',    icon: '💰', label: 'Finanzas' },
+  ],
+  medico_general: [
+    { path: '/dashboard',   icon: '🏠', label: 'Inicio' },
+    { path: '/internos',    icon: '👴', label: 'Internos' },
+    { path: '/solicitudes', icon: '📋', label: 'Solicitudes' },
+  ],
+  medico_especialista: [
+    { path: '/dashboard', icon: '🏠', label: 'Inicio' },
+    { path: '/visitas',   icon: '🩺', label: 'Visitas' },
+  ],
+  enfermero: [
+    { path: '/dashboard',   icon: '🏠', label: 'Inicio' },
+    { path: '/solicitudes', icon: '📋', label: 'Solicitudes' },
+  ],
+  fundacion: [
+    { path: '/dashboard',   icon: '🏠', label: 'Inicio' },
+    { path: '/solicitudes', icon: '📋', label: 'Solicitudes' },
+  ],
+  laboratorista: [
+    { path: '/dashboard',   icon: '🏠', label: 'Inicio' },
+    { path: '/laboratorio', icon: '🔬', label: 'Laboratorio' },
+  ],
+  farmaceutico: [
+    { path: '/dashboard', icon: '🏠', label: 'Inicio' },
+    { path: '/farmacia',  icon: '💊', label: 'Farmacia' },
+  ],
+};
+
 export default function Layout({ children }) {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
@@ -11,13 +58,8 @@ export default function Layout({ children }) {
     navigate('/login');
   };
 
-    const menuItems = [
-        { path: '/dashboard', icon: '🏠', label: 'Inicio' },
-        { path: '/internos', icon: '👴', label: 'Internos' },
-        { path: '/solicitudes', icon: '🩺', label: 'Solicitudes' },
-        { path: '/visitas', icon: '🩺', label: 'Visitas' },
-        { path: '/laboratorio', icon: '🔬', label: 'Laboratorio' },
-    ];
+  const rol = usuario?.rol || '';
+  const menuItems = MENU_POR_ROL[rol] || [{ path: '/dashboard', icon: '🏠', label: 'Inicio' }];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -69,7 +111,7 @@ export default function Layout({ children }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{usuario?.nombre}</p>
-              <p className="text-blue-400 text-xs capitalize">{usuario?.rol?.replace('_', ' ')}</p>
+              <p className="text-blue-400 text-xs capitalize">{rol.replace('_', ' ')}</p>
             </div>
           </div>
           <button
