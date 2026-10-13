@@ -5,37 +5,74 @@ import api from '../../services/api';
 function FormularioInterno({ onGuardado, onCancelar }) {
   const [paso, setPaso] = useState(1);
   const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState('');
+  const [errores, setErrores] = useState({});
   const [datos, setDatos] = useState({
-    // Paso 1 — Datos personales
     nombres: '', apellidos: '', dpi: '',
     fecha_nacimiento: '', fecha_ingreso: new Date().toISOString().split('T')[0],
     estado: 'activo', motivo_ingreso: '',
-    // Paso 2 — Familiar
     fam_nombres: '', fam_apellidos: '', parentesco: '',
     telefono: '', correo_electronico: '', direccion: '',
-    // Paso 3 — Condición médica
     psicopatologia: '', medicamento: '', dosis: '',
   });
 
-  const actualizar = (campo, valor) => setDatos(prev => ({ ...prev, [campo]: valor }));
+  const actualizar = (campo, valor) => {
+    setDatos(prev => ({ ...prev, [campo]: valor }));
+    // Limpiar error del campo al escribir
+    if (errores[campo]) setErrores(prev => ({ ...prev, [campo]: '' }));
+  };
 
   const validarPaso = () => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const nuevosErrores = {};
+
     if (paso === 1) {
-      if (!datos.nombres || !datos.apellidos || !datos.dpi || !datos.fecha_nacimiento || !datos.fecha_ingreso) {
-        setError('Complete todos los campos obligatorios'); return false;
+      if (!datos.nombres.trim()) nuevosErrores.nombres = 'El nombre es obligatorio';
+      if (!datos.apellidos.trim()) nuevosErrores.apellidos = 'Los apellidos son obligatorios';
+
+      // H-07: DPI solo números (13 dígitos Guatemala)
+      const dpiLimpio = datos.dpi.replace(/\s/g, '');
+      if (!dpiLimpio) {
+        nuevosErrores.dpi = 'El DPI es obligatorio';
+      } else if (!/^\d+$/.test(dpiLimpio)) {
+        nuevosErrores.dpi = 'El DPI solo debe contener números';
+      } else if (dpiLimpio.length !== 13) {
+        nuevosErrores.dpi = 'El DPI debe tener exactamente 13 dígitos';
       }
+
+      // H-07: fecha de nacimiento no puede ser futura
+      if (!datos.fecha_nacimiento) {
+        nuevosErrores.fecha_nacimiento = 'La fecha de nacimiento es obligatoria';
+      } else {
+        const fnac = new Date(datos.fecha_nacimiento);
+        if (fnac >= hoy) {
+          nuevosErrores.fecha_nacimiento = 'La fecha de nacimiento no puede ser hoy ni una fecha futura';
+        }
+      }
+
+      if (!datos.fecha_ingreso) nuevosErrores.fecha_ingreso = 'La fecha de ingreso es obligatoria';
     }
+
     if (paso === 2) {
-      if (!datos.fam_nombres || !datos.fam_apellidos || !datos.parentesco || !datos.telefono || !datos.correo_electronico) {
-        setError('Complete todos los campos obligatorios'); return false;
+      if (!datos.fam_nombres.trim()) nuevosErrores.fam_nombres = 'El nombre del familiar es obligatorio';
+      if (!datos.fam_apellidos.trim()) nuevosErrores.fam_apellidos = 'Los apellidos del familiar son obligatorios';
+      if (!datos.parentesco) nuevosErrores.parentesco = 'Seleccione el parentesco';
+      if (!datos.telefono.trim()) nuevosErrores.telefono = 'El teléfono es obligatorio';
+
+      // H-07: validar formato de correo electrónico
+      if (!datos.correo_electronico.trim()) {
+        nuevosErrores.correo_electronico = 'El correo electrónico es obligatorio';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.correo_electronico)) {
+        nuevosErrores.correo_electronico = 'Ingrese un correo electrónico válido (ej. nombre@dominio.com)';
       }
     }
-    setError(''); return true;
+
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
   };
 
   const siguiente = () => { if (validarPaso()) setPaso(p => p + 1); };
-  const anterior  = () => { setError(''); setPaso(p => p - 1); };
+  const anterior  = () => { setErrores({}); setPaso(p => p - 1); };
 
   const guardar = async () => {
     if (!validarPaso()) return;
@@ -60,11 +97,23 @@ function FormularioInterno({ onGuardado, onCancelar }) {
       await api.post('/internos', payload);
       onGuardado();
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al guardar el interno');
+      setErrores({ general: err.response?.data?.error || 'Error al guardar el interno' });
     } finally {
       setCargando(false);
     }
   };
+
+  // Helper para mostrar error de campo
+  const CampoError = ({ campo }) => errores[campo]
+    ? <p className="text-red-500 text-xs mt-1">⚠ {errores[campo]}</p>
+    : null;
+
+  const claseInput = (campo) =>
+    `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+      errores[campo]
+        ? 'border-red-400 focus:ring-red-300'
+        : 'border-gray-300 focus:ring-blue-500'
+    }`;
 
   const estadoOpciones = [
     { val: 'activo', label: 'Activo', icon: '💚', cls: 'border-green-500 bg-green-50 text-green-700' },
@@ -112,10 +161,10 @@ function FormularioInterno({ onGuardado, onCancelar }) {
         {/* Contenido */}
         <div className="p-6">
 
-          {/* Error */}
-          {error && (
+          {/* Error general */}
+          {errores.general && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <p className="text-red-600 text-sm">{error}</p>
+              <p className="text-red-600 text-sm">{errores.general}</p>
             </div>
           )}
 
@@ -129,34 +178,37 @@ function FormularioInterno({ onGuardado, onCancelar }) {
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Nombres <span className="text-red-500">*</span></label>
                   <input value={datos.nombres} onChange={e => actualizar('nombres', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej. Carlos Enrique" />
+                    className={claseInput('nombres')} placeholder="Ej. Carlos Enrique" />
+                  <CampoError campo="nombres" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Apellidos <span className="text-red-500">*</span></label>
                   <input value={datos.apellidos} onChange={e => actualizar('apellidos', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej. Ajú Pérez" />
+                    className={claseInput('apellidos')} placeholder="Ej. Ajú Pérez" />
+                  <CampoError campo="apellidos" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">DPI <span className="text-red-500">*</span></label>
                   <input value={datos.dpi} onChange={e => actualizar('dpi', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0000 00000 0000" maxLength={15} />
+                    className={claseInput('dpi')} placeholder="0000000000000" maxLength={13} />
+                  <CampoError campo="dpi" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Fecha de nacimiento <span className="text-red-500">*</span></label>
                   <input type="date" value={datos.fecha_nacimiento} onChange={e => actualizar('fecha_nacimiento', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    max={new Date().toISOString().split('T')[0]}
+                    className={claseInput('fecha_nacimiento')} />
+                  <CampoError campo="fecha_nacimiento" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Fecha de ingreso <span className="text-red-500">*</span></label>
                   <input type="date" value={datos.fecha_ingreso} onChange={e => actualizar('fecha_ingreso', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className={claseInput('fecha_ingreso')} />
+                  <CampoError campo="fecha_ingreso" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Estado <span className="text-red-500">*</span></label>
@@ -189,39 +241,40 @@ function FormularioInterno({ onGuardado, onCancelar }) {
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Nombres <span className="text-red-500">*</span></label>
                   <input value={datos.fam_nombres} onChange={e => actualizar('fam_nombres', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nombres del familiar" />
+                    className={claseInput('fam_nombres')} placeholder="Nombres del familiar" />
+                  <CampoError campo="fam_nombres" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Apellidos <span className="text-red-500">*</span></label>
                   <input value={datos.fam_apellidos} onChange={e => actualizar('fam_apellidos', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Apellidos del familiar" />
+                    className={claseInput('fam_apellidos')} placeholder="Apellidos del familiar" />
+                  <CampoError campo="fam_apellidos" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Parentesco <span className="text-red-500">*</span></label>
                   <select value={datos.parentesco} onChange={e => actualizar('parentesco', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    className={claseInput('parentesco')}>
                     <option value="">— Seleccione —</option>
                     <option>Hijo/a</option><option>Nieto/a</option>
                     <option>Sobrino/a</option><option>Hermano/a</option><option>Otro</option>
                   </select>
+                  <CampoError campo="parentesco" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Teléfono <span className="text-red-500">*</span></label>
                   <input value={datos.telefono} onChange={e => actualizar('telefono', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej. 5588-2233" />
+                    className={claseInput('telefono')} placeholder="Ej. 5588-2233" />
+                  <CampoError campo="telefono" />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1 block">Correo electrónico <span className="text-red-500">*</span></label>
                 <input type="email" value={datos.correo_electronico} onChange={e => actualizar('correo_electronico', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="correo@ejemplo.com" />
-                <p className="text-xs text-gray-400 mt-1">📧 Se usará para notificaciones automáticas</p>
+                  className={claseInput('correo_electronico')} placeholder="correo@ejemplo.com" />
+                <CampoError campo="correo_electronico" />
+                {!errores.correo_electronico && <p className="text-xs text-gray-400 mt-1">📧 Se usará para notificaciones automáticas</p>}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1 block">Dirección <span className="text-gray-400 font-normal">(opcional)</span></label>
@@ -331,22 +384,16 @@ export default function Internos() {
 
   return (
     <div>
-      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium z-50 animate-bounce">
           {toast}
         </div>
       )}
 
-      {/* Formulario modal */}
       {mostrarFormulario && (
-        <FormularioInterno
-          onGuardado={onGuardado}
-          onCancelar={() => setMostrarFormulario(false)}
-        />
+        <FormularioInterno onGuardado={onGuardado} onCancelar={() => setMostrarFormulario(false)} />
       )}
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-blue-900">Internos</h1>
@@ -360,14 +407,12 @@ export default function Internos() {
         </button>
       </div>
 
-      {/* Buscador */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
         <input type="text" placeholder="Buscar por nombre o DPI..."
           value={busqueda} onChange={e => setBusqueda(e.target.value)}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
 
-      {/* Tabla */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {cargando ? (
           <div className="p-12 text-center"><p className="text-gray-400 text-sm">Cargando internos...</p></div>
