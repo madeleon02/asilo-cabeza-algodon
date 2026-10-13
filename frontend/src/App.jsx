@@ -6,7 +6,8 @@ import Internos from './pages/internos/Internos';
 import Solicitudes from './pages/solicitudes/Solicitudes';
 import Visitas from './pages/visitas/Visitas';
 import Laboratorio from './pages/laboratorio/Laboratorio';
-
+import Farmacia from './pages/farmacia/Farmacia';
+import Finanzas from './pages/finanzas/Finanzas';
 
 function Dashboard() {
     const { usuario } = useAuth();
@@ -31,9 +32,14 @@ function Dashboard() {
                         <p className="text-gray-500 text-sm mt-1">Referencias médicas</p>
                     </div>
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center cursor-pointer hover:shadow-md transition">
-                        <p className="text-3xl mb-2">📊</p>
-                        <p className="font-semibold text-yellow-900">Reportes</p>
-                        <p className="text-gray-500 text-sm mt-1">Estadísticas del asilo</p>
+                        <p className="text-3xl mb-2">💊</p>
+                        <p className="font-semibold text-yellow-900">Farmacia</p>
+                        <p className="text-gray-500 text-sm mt-1">Despacho de medicamentos</p>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 text-center cursor-pointer hover:shadow-md transition">
+                        <p className="text-3xl mb-2">💰</p>
+                        <p className="font-semibold text-purple-900">Finanzas</p>
+                        <p className="text-gray-500 text-sm mt-1">Cobros, gastos y donaciones</p>
                     </div>
                 </div>
             </div>
@@ -62,6 +68,8 @@ function App() {
                     <Route path="/solicitudes" element={<RutaProtegida><Layout><Solicitudes /></Layout></RutaProtegida>} />
                     <Route path="/visitas" element={<RutaProtegida><Layout><Visitas /></Layout></RutaProtegida>} />
                     <Route path="/laboratorio" element={<RutaProtegida><Layout><Laboratorio /></Layout></RutaProtegida>} />
+                    <Route path="/farmacia" element={<RutaProtegida><Layout><Farmacia /></Layout></RutaProtegida>} />
+                    <Route path="/finanzas" element={<RutaProtegida><Layout><Finanzas /></Layout></RutaProtegida>} />
                     <Route path="*" element={<Navigate to="/login" />} />
                 </Routes>
             </BrowserRouter>
