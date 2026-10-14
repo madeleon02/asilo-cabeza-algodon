@@ -11,6 +11,7 @@ const MENU_POR_ROL = {
     { path: '/laboratorio', icon: '🔬', label: 'Laboratorio' },
     { path: '/farmacia',    icon: '💊', label: 'Farmacia' },
     { path: '/finanzas',    icon: '💰', label: 'Finanzas' },
+    { path: '/reportes',    icon: '📊', label: 'Reportes' },
   ],
   director: [
     { path: '/dashboard',   icon: '🏠', label: 'Inicio' },
@@ -20,6 +21,7 @@ const MENU_POR_ROL = {
     { path: '/laboratorio', icon: '🔬', label: 'Laboratorio' },
     { path: '/farmacia',    icon: '💊', label: 'Farmacia' },
     { path: '/finanzas',    icon: '💰', label: 'Finanzas' },
+    { path: '/reportes',    icon: '📊', label: 'Reportes' },
   ],
   medico_general: [
     { path: '/dashboard',   icon: '🏠', label: 'Inicio' },

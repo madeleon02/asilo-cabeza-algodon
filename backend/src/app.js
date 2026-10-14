@@ -36,6 +36,7 @@ app.use('/api/internos', require('./routes/internos.routes'));
 app.use('/api/solicitudes', require('./routes/solicitudes.routes'));
 app.use('/api/visitas', require('./routes/visitas.routes'));
 app.use('/api/laboratorio', require('./routes/laboratorio.routes'));
+app.use('/api/reportes', require('./routes/reportes.routes'));
 app.use('/api/finanzas', require('./routes/finanzas.routes'));
 app.use('/api/farmacia', require('./routes/farmacia.routes'));
 

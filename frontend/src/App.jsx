@@ -8,6 +8,7 @@ import Visitas from './pages/visitas/Visitas';
 import Laboratorio from './pages/laboratorio/Laboratorio';
 import Farmacia from './pages/farmacia/Farmacia';
 import Finanzas from './pages/finanzas/Finanzas';
+import Reportes from './pages/reportes/Reportes';
 
 function Dashboard() {
     const { usuario } = useAuth();
@@ -70,6 +71,7 @@ function App() {
                     <Route path="/laboratorio" element={<RutaProtegida><Layout><Laboratorio /></Layout></RutaProtegida>} />
                     <Route path="/farmacia" element={<RutaProtegida><Layout><Farmacia /></Layout></RutaProtegida>} />
                     <Route path="/finanzas" element={<RutaProtegida><Layout><Finanzas /></Layout></RutaProtegida>} />
+                    <Route path="/reportes" element={<RutaProtegida><Layout><Reportes /></Layout></RutaProtegida>} />
                     <Route path="*" element={<Navigate to="/login" />} />
                 </Routes>
             </BrowserRouter>
