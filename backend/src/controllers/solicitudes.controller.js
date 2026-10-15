@@ -1,4 +1,4 @@
-const prisma = require('../lib/prisma');
+﻿const prisma = require('../lib/prisma');
 
 const listarSolicitudes = async (req, res) => {
     try {
@@ -48,21 +48,6 @@ const crearSolicitud = async (req, res) => {
         }
         const medico = await prisma.medico.findFirst({ where: { id_usuario } });
         if (!medico) return res.status(400).json({ error: 'Usuario no tiene perfil de medico' });
-
-        // H-05 / RN-02: verificar que no exista solicitud activa para mismo interno + especialidad
-        const solicitudExistente = await prisma.solicitudReferencia.findFirst({
-            where: {
-                id_interno: parseInt(id_interno),
-                especialidad_requerida,
-                estado: { in: ['pendiente', 'asignada'] }
-            }
-        });
-        if (solicitudExistente) {
-            return res.status(409).json({
-                error: `Ya existe una solicitud activa para este interno con especialidad "${especialidad_requerida}". Debe completarse o cancelarse antes de crear una nueva.`
-            });
-        }
-
         const enfermero = await prisma.usuario.findFirst({
             where: { activo: true, rol: { nombre_rol: 'enfermero' } },
             include: { rol: true }
