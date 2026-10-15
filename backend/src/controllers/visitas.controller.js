@@ -50,6 +50,9 @@ const iniciarVisita = async (req, res) => {
         const medico = await prisma.medico.findFirst({ where: { id_usuario } });
         if (!medico) return res.status(400).json({ error: 'Usuario no tiene perfil de medico' });
 
+        // RN-01: si el médico pertenece a la fundación, la consulta no tiene costo
+        const costoConsulta = medico.pertenece_fundacion ? 0.00 : 150.00;
+
         const [visita] = await prisma.$transaction([
             prisma.visitaMedica.create({
                 data: {
@@ -58,7 +61,7 @@ const iniciarVisita = async (req, res) => {
                     id_medico_especialista: medico.id_medico,
                     motivo_visita: solicitud.motivo_referencia,
                     diagnostico: '',
-                    costo_consulta: 150.00,
+                    costo_consulta: costoConsulta,
                     estado: 'en_proceso',
                 },
                 include: { interno: { select: { nombres: true, apellidos: true, dpi: true } } }
@@ -99,9 +102,32 @@ const finalizarVisita = async (req, res) => {
             return res.status(400).json({ error: 'Solo se pueden finalizar visitas en proceso' });
         }
 
+        const costoConsulta = parseFloat(visita.costo_consulta);
         const costoExamenes = visita.examenes.reduce((sum, e) => sum + parseFloat(e.costo_examen || 0), 0);
         const costoMedicamentos = visita.prescripciones.reduce((sum, p) => sum + parseFloat(p.costo_medicamento || 0), 0);
-        const costoTotal = parseFloat(visita.costo_consulta) + costoExamenes + costoMedicamentos;
+        const costoTotal = costoConsulta + costoExamenes + costoMedicamentos;
+
+        // RN-07: desglose de costos en el cobro
+        const especialidad = visita.solicitud?.especialidad_requerida || 'Consulta';
+        const esGratis = costoConsulta === 0;
+        const lineasDesglose = [
+            `Visita médica - ${especialidad}`,
+            `  Consulta: Q${costoConsulta.toFixed(2)}${esGratis ? ' (médico fundación - sin costo)' : ''}`,
+        ];
+        if (visita.examenes.length > 0) {
+            lineasDesglose.push(`  Exámenes (${visita.examenes.length}): Q${costoExamenes.toFixed(2)}`);
+            visita.examenes.forEach(e => {
+                lineasDesglose.push(`    - ${e.nombre_examen}: Q${parseFloat(e.costo_examen || 0).toFixed(2)}`);
+            });
+        }
+        if (visita.prescripciones.length > 0) {
+            lineasDesglose.push(`  Medicamentos (${visita.prescripciones.length}): Q${costoMedicamentos.toFixed(2)}`);
+            visita.prescripciones.forEach(p => {
+                lineasDesglose.push(`    - ${p.nombre_medicamento}: Q${parseFloat(p.costo_medicamento || 0).toFixed(2)}`);
+            });
+        }
+        lineasDesglose.push(`  TOTAL: Q${costoTotal.toFixed(2)}`);
+        const descripcionDesglose = lineasDesglose.join('\n');
 
         await prisma.$transaction([
             prisma.visitaMedica.update({
@@ -116,7 +142,7 @@ const finalizarVisita = async (req, res) => {
                 data: {
                     id_familiar: visita.interno.id_familiar,
                     id_interno: visita.id_interno,
-                    descripcion: 'Visita medica - ' + (visita.solicitud?.especialidad_requerida || 'Consulta'),
+                    descripcion: descripcionDesglose,
                     monto_total: costoTotal,
                     monto_pagado: 0,
                     saldo_pendiente: costoTotal,
@@ -129,7 +155,16 @@ const finalizarVisita = async (req, res) => {
             })
         ]);
 
-        res.json({ mensaje: 'Visita finalizada correctamente', costo_total: costoTotal });
+        res.json({
+            mensaje: 'Visita finalizada correctamente',
+            desglose: {
+                costo_consulta: costoConsulta,
+                costo_examenes: costoExamenes,
+                costo_medicamentos: costoMedicamentos,
+                costo_total: costoTotal,
+                medico_fundacion: esGratis,
+            }
+        });
     } catch (error) {
         console.error('Error finalizarVisita:', error.message);
         res.status(500).json({ error: 'Error interno del servidor' });
