@@ -37,32 +37,37 @@ async function main() {
   const rolLab = await prisma.rol.findUnique({ where: { nombre_rol: 'laboratorista' } });
   const rolFarma = await prisma.rol.findUnique({ where: { nombre_rol: 'farmaceutico' } });
 
-  // Crear usuarios
-  const password = await bcrypt.hash('Admin123!', 12);
-
-  const usuarios = [
-    { username: 'admin', nombre_completo: 'Administrador Sistema', correo: 'admin@asilo.com', id_rol: rolAdmin.id_rol },
-    { username: 'director', nombre_completo: 'Director General', correo: 'director@asilo.com', id_rol: rolDirector.id_rol },
-    { username: 'medico.general', nombre_completo: 'Dr. Roberto Samayoa', correo: 'rsamayoa@asilo.com', id_rol: rolMedicoG.id_rol },
-    { username: 'enfermero1', nombre_completo: 'Licda. Carmen López', correo: 'clopez@asilo.com', id_rol: rolEnfermero.id_rol },
-    { username: 'fundacion1', nombre_completo: 'Personal Fundación', correo: 'fundacion@asilo.com', id_rol: rolFundacion.id_rol },
-    { username: 'especialista1', nombre_completo: 'Dra. Ana Leticia Ruiz', correo: 'aruiz@fundacion.com', id_rol: rolMedicoE.id_rol },
-    { username: 'laboratorio1', nombre_completo: 'Lab. Mario García', correo: 'mgarcia@fundacion.com', id_rol: rolLab.id_rol },
-    { username: 'farmacia1', nombre_completo: 'Farm. Luis Pérez', correo: 'lperez@fundacion.com', id_rol: rolFarma.id_rol },
+  // Contraseñas únicas por usuario
+  const credenciales = [
+    { username: 'admin',          password: 'Asilo@Admin2025',     nombre_completo: 'Administrador Sistema',  correo: 'admin@asilo.com',        id_rol: rolAdmin.id_rol },
+    { username: 'director',       password: 'Director@2025!',      nombre_completo: 'Director General',       correo: 'director@asilo.com',     id_rol: rolDirector.id_rol },
+    { username: 'medico.general', password: 'MedGen@Roberto25',    nombre_completo: 'Dr. Roberto Samayoa',    correo: 'rsamayoa@asilo.com',     id_rol: rolMedicoG.id_rol },
+    { username: 'enfermero1',     password: 'Enferm@Carmen25',     nombre_completo: 'Licda. Carmen López',    correo: 'clopez@asilo.com',       id_rol: rolEnfermero.id_rol },
+    { username: 'fundacion1',     password: 'Fund@Asilo2025!',     nombre_completo: 'Personal Fundación',     correo: 'fundacion@asilo.com',    id_rol: rolFundacion.id_rol },
+    { username: 'especialista1',  password: 'Esp@AnaRuiz25!',      nombre_completo: 'Dra. Ana Leticia Ruiz', correo: 'aruiz@fundacion.com',    id_rol: rolMedicoE.id_rol },
+    { username: 'laboratorio1',   password: 'Lab@Mario2025!',      nombre_completo: 'Lab. Mario García',     correo: 'mgarcia@fundacion.com',  id_rol: rolLab.id_rol },
+    { username: 'farmacia1',      password: 'Farm@Luis2025!',      nombre_completo: 'Farm. Luis Pérez',      correo: 'lperez@fundacion.com',   id_rol: rolFarma.id_rol },
   ];
 
-  for (const u of usuarios) {
+  for (const u of credenciales) {
+    const hash = await bcrypt.hash(u.password, 12);
     await prisma.usuario.upsert({
       where: { username: u.username },
-      update: {},
-      create: { ...u, password_hash: password }
+      update: { password_hash: hash },
+      create: {
+        username: u.username,
+        nombre_completo: u.nombre_completo,
+        correo: u.correo,
+        id_rol: u.id_rol,
+        password_hash: hash,
+      }
     });
   }
-  console.log('✅ Usuarios creados');
+
+  console.log('✅ Usuarios creados con contraseñas únicas');
   console.log('');
-  console.log('Credenciales de acceso (todos usan la misma contraseña):');
-  console.log('Contraseña: Admin123!');
-  usuarios.forEach(u => console.log(`  ${u.username} → ${u.nombre_completo}`));
+  console.log('Credenciales de acceso:');
+  credenciales.forEach(u => console.log(`  ${u.username.padEnd(16)} → ${u.password}`));
 }
 
 main()
